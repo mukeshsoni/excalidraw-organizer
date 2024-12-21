@@ -1,0 +1,30 @@
+{
+  "name": "Exclidraw organizer",
+  "description": "Organize your Excalidraw drawings",
+  "version": "1.0",
+  "manifest_version": 3,
+  "action": {
+    "default_icon": "hello_extensions.png"
+  },
+  "permissions": ["activeTab", "storage", "scripting"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "js": ["scripts/content.js"],
+      "matches": ["https://excalidraw.com/*"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "/dist/assets/index.js",
+        "/dist/assets/index.css",
+        "/inject.js",
+        "/scripts/inject.js"
+      ],
+      "matches": ["https://excalidraw.com/*"]
+    }
+  ]
+}
