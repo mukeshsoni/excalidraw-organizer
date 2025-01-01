@@ -55,7 +55,6 @@ export function CanvasList() {
       localStorage.setItem("excalidraw", JSON.stringify(canvas.elements));
       // 5. Reload the page
       window.location.reload();
-      console.log("name changed to", name);
     }
     setShowNewCanvasNameModal(false);
   };
@@ -89,9 +88,6 @@ type NewCanvasModalProps = {
 function NewCanvasModal({ onClose, folders, onSubmit }: NewCanvasModalProps) {
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("name changed to", e.currentTarget.value);
-  };
   function getDefaultFolderId() {
     return (
       folders
@@ -101,11 +97,6 @@ function NewCanvasModal({ onClose, folders, onSubmit }: NewCanvasModalProps) {
   }
   const handleCreateClick = () => {
     if (nameInputRef.current) {
-      console.log(
-        "name changed to",
-        nameInputRef.current.value,
-        selectedFolder,
-      );
       onSubmit(
         nameInputRef.current.value,
         Number(selectedFolder || getDefaultFolderId()),
@@ -119,11 +110,7 @@ function NewCanvasModal({ onClose, folders, onSubmit }: NewCanvasModalProps) {
   return (
     <Modal opened={true} onClose={onClose} title="Create new canvas" centered>
       <Stack gap={12}>
-        <Input
-          placeholder="Enter name"
-          onChange={handleNameChange}
-          ref={nameInputRef}
-        />
+        <Input placeholder="Enter name" ref={nameInputRef} />
         <Select
           onChange={handleFolderChange}
           label="Select folder"

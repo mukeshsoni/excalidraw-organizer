@@ -22,7 +22,6 @@ export default function FolderList() {
     queryFn: () => getFolders(db),
     enabled: !!db,
   });
-  console.log({ folders });
   function handleNewFolderClick() {
     setShowNewFolderNameModal(true);
   }
@@ -30,10 +29,11 @@ export default function FolderList() {
     setShowNewFolderNameModal(false);
   };
   const handleNewFolderSubmit = async (name: string) => {
-    console.log("new folder name", name);
     if (db && name) {
       await createNewFolder(db, name);
       refetch();
+    } else {
+      // TODO
     }
     setShowNewFolderNameModal(false);
   };
@@ -71,23 +71,15 @@ type NewFolderModalProps = {
 };
 function NewFolderModal({ onClose, onSubmit }: NewFolderModalProps) {
   const nameInputRef = useRef<HTMLInputElement>(null);
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("name changed to", e.currentTarget.value);
-  };
   const handleCreateClick = () => {
     if (nameInputRef.current) {
-      console.log("name changed to", nameInputRef.current.value);
       onSubmit(nameInputRef.current.value);
     }
   };
   return (
     <Modal opened={true} onClose={onClose} title="New Folder" centered>
       <Stack gap={12}>
-        <Input
-          placeholder="Enter folder name"
-          onChange={handleNameChange}
-          ref={nameInputRef}
-        />
+        <Input placeholder="Enter folder name" ref={nameInputRef} />
         <Group style={{ flexDirection: "row-reverse" }} gap={8}>
           <Button onClick={handleCreateClick}>Create</Button>
           <Button variant="outline" onClick={onClose}>
