@@ -31,6 +31,7 @@ export interface ExcalidrawOrganizerDB extends DBSchema {
 }
 
 export const DEFAULT_FOLDER_NAME = "Default";
+export const DEFAULT_FOLDER_ID = 1;
 export const idNameSeparator = "::::";
 export async function initializeDB() {
   const db = await openDB<ExcalidrawOrganizerDB>("excalidraw-organizer", 1, {
@@ -72,7 +73,7 @@ export async function initializeDB() {
       // TODO: Get the existing excalidraw canvas details and add it to the db
       // Add the id of that canvas to the canvasIds array
       await folderStore.add({
-        id: 1,
+        id: DEFAULT_FOLDER_ID,
         name: DEFAULT_FOLDER_NAME,
         canvases: [{ canvasId, canvasName }],
       });
@@ -87,9 +88,13 @@ export async function initializeDB() {
 }
 
 export async function getFolders(
-  db: IDBPDatabase<ExcalidrawOrganizerDB>,
+  db: IDBPDatabase<ExcalidrawOrganizerDB> | null,
 ): Promise<ExcalidrawOrganizerDB["folder"]["value"][]> {
-  return db.getAll("folder");
+  if (db) {
+    return db.getAll("folder");
+  } else {
+    return [];
+  }
 }
 
 export async function getCanvasFromDb(
@@ -126,6 +131,17 @@ export async function saveExistingCanvasToDb(
   if (currentCanvas) {
     await db.put("canvas", currentCanvas);
   }
+}
+export async function createNewFolder(
+  db: IDBPDatabase<ExcalidrawOrganizerDB>,
+  name: string,
+) {
+  const folder = {
+    name,
+    canvases: [],
+  };
+  await db.add("folder", folder);
+  return folder;
 }
 export async function createNewCanvas(
   db: IDBPDatabase<ExcalidrawOrganizerDB>,
