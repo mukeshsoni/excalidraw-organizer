@@ -1,16 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { AppState } from "@excalidraw/excalidraw/types/types";
-import {
-  Stack,
-  Button,
-  Modal,
-  Input,
-  Group,
-  Flex,
-  Divider,
-} from "@mantine/core";
+import { Button, Modal, Flex, Divider } from "@mantine/core";
 import { idNameSeparator, getFolders, ExcalidrawOrganizerDB } from "./db";
-import { getActiveCanvas } from "./helpers";
 
 import "./App.css";
 import { useDatabase } from "./DbProvider";
@@ -41,7 +32,6 @@ function App() {
     [],
   );
   const [showPanel, setShowPanel] = useState(false);
-  const [showRenameModal, setShowRenameModal] = useState(false);
   const db = useDatabase();
 
   // Once we initialize the db, get the folders and canvases
@@ -117,50 +107,8 @@ function App() {
     localStorage.setItem(panelVisibilityKey, JSON.stringify(true));
   };
 
-  // const handleCanvasItemClick = async ({
-  //   id,
-  //   name,
-  // }: {
-  //   id: string;
-  //   name: string;
-  // }) => {
-  //   if (db) {
-  //     await saveExistingCanvasToDb(db);
-  //     // Get the canvas for the clicked item
-  //     const canvas = await getCanvasFromDb(db, id);
-  //     if (canvas) {
-  //       localStorage.setItem(
-  //         "excalidraw-state",
-  //         JSON.stringify(canvas.appState),
-  //       );
-  //       localStorage.setItem("excalidraw", JSON.stringify(canvas.elements));
-  //       window.location.reload();
-  //     } else {
-  //       console.error("Error getting canvas data");
-  //     }
-  //   } else {
-  //     // TODO
-  //   }
-  // };
-  const handleRenameModalClose = () => {
-    setShowRenameModal(false);
-  };
-  const handleRenameChange = (name: string) => {
-    console.log("name changed to", name);
-    setShowRenameModal(false);
-  };
-
-  const defaultValue = getActiveCanvas()?.name;
-
   return (
     <>
-      {showRenameModal ? (
-        <NameModal
-          defaultValue={defaultValue}
-          onClose={handleRenameModalClose}
-          onNameChange={handleRenameChange}
-        />
-      ) : null}
       {!showPanel ? (
         <Button
           onClick={handlePanelOpenClick}
@@ -192,48 +140,48 @@ function App() {
   );
 }
 
-type NameModalProps = {
-  defaultValue?: string;
-  onClose: () => void;
-  onNameChange: (name: string) => void;
-};
+// type NameModalProps = {
+//   defaultValue?: string;
+//   onClose: () => void;
+//   onNameChange: (name: string) => void;
+// };
 
-function NameModal({ defaultValue, onClose, onNameChange }: NameModalProps) {
-  const nameInputRef = useRef<HTMLInputElement>(null);
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("name changed to", e.currentTarget.value);
-  };
-  const handleSaveNameClick = () => {
-    // TODO
-    if (nameInputRef.current) {
-      console.log("name changed to", nameInputRef.current.value);
-      onNameChange(nameInputRef.current.value);
-    }
-  };
-  return (
-    <Modal
-      opened={true}
-      onClose={onClose}
-      title="Save as"
-      centered
-      style={{ zIndex: 10000 }}
-    >
-      <Stack gap={12}>
-        <Input
-          placeholder="Enter name"
-          onChange={handleNameChange}
-          defaultValue={defaultValue}
-          ref={nameInputRef}
-        />
-        <Group style={{ flexDirection: "row-reverse" }} gap={8}>
-          <Button onClick={handleSaveNameClick}>Save</Button>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-        </Group>
-      </Stack>
-    </Modal>
-  );
-}
+// function NameModal({ defaultValue, onClose, onNameChange }: NameModalProps) {
+//   const nameInputRef = useRef<HTMLInputElement>(null);
+//   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+//     console.log("name changed to", e.currentTarget.value);
+//   };
+//   const handleSaveNameClick = () => {
+//     // TODO
+//     if (nameInputRef.current) {
+//       console.log("name changed to", nameInputRef.current.value);
+//       onNameChange(nameInputRef.current.value);
+//     }
+//   };
+//   return (
+//     <Modal
+//       opened={true}
+//       onClose={onClose}
+//       title="Save as"
+//       centered
+//       style={{ zIndex: 10000 }}
+//     >
+//       <Stack gap={12}>
+//         <Input
+//           placeholder="Enter name"
+//           onChange={handleNameChange}
+//           defaultValue={defaultValue}
+//           ref={nameInputRef}
+//         />
+//         <Group style={{ flexDirection: "row-reverse" }} gap={8}>
+//           <Button onClick={handleSaveNameClick}>Save</Button>
+//           <Button variant="outline" onClick={onClose}>
+//             Cancel
+//           </Button>
+//         </Group>
+//       </Stack>
+//     </Modal>
+//   );
+// }
 
 export default App;

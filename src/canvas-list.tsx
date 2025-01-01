@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Button,
   Flex,
@@ -7,30 +7,53 @@ import {
   Modal,
   Select,
   Stack,
+  Text,
+  UnstyledButton,
 } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
+import { IconPlus } from "@tabler/icons-react";
 import { useDatabase } from "./DbProvider";
 import {
   createNewCanvas,
   DEFAULT_FOLDER_ID,
+  ExcalidrawOrganizerDB,
+  getCanvasFromDb,
   getFolders,
   saveExistingCanvasToDb,
   updateFolderWithCanvas,
 } from "./db";
 import { getSelectedFolderId } from "./helpers";
+import { ExcalidrawPreview } from "./preview";
 
 export function CanvasList() {
   const [showNewCanvasNameModal, setShowNewCanvasNameModal] = useState(false);
+  const [canvases, setCanvases] = useState<
+    ExcalidrawOrganizerDB["canvas"]["value"][]
+  >([]);
   const db = useDatabase();
   const { data: folders } = useQuery({
     queryKey: ["folders"],
     queryFn: () => getFolders(db),
     enabled: !!db,
   });
-  console.log("CanvasList: folders: ", folders);
   const selectedFolderId = getSelectedFolderId();
-  const canvases =
-    folders?.find((folder) => folder.id === selectedFolderId)?.canvases || [];
+  useEffect(() => {
+    async function getCanvases() {
+      const folder = folders?.find((folder) => folder.id === selectedFolderId);
+      if (db && folder) {
+        const canvasesFromDb = [];
+        for (const canvas of folder.canvases) {
+          const canvasFromDb = await getCanvasFromDb(db, canvas.canvasId);
+          if (canvasFromDb) {
+            canvasesFromDb.push(canvasFromDb);
+          }
+        }
+        setCanvases(canvasesFromDb);
+      }
+    }
+    getCanvases();
+  }, [selectedFolderId, folders, db]);
+
   function handleNewCanvasClick() {
     setShowNewCanvasNameModal(true);
   }
@@ -55,17 +78,61 @@ export function CanvasList() {
     }
     setShowNewCanvasNameModal(false);
   };
+  const handleCanvasItemClick = async (id: string) => {
+    if (db) {
+      await saveExistingCanvasToDb(db);
+      // Get the canvas for the clicked item
+      const canvas = await getCanvasFromDb(db, id);
+      if (canvas) {
+        localStorage.setItem(
+          "excalidraw-state",
+          JSON.stringify(canvas.appState),
+        );
+        localStorage.setItem("excalidraw", JSON.stringify(canvas.elements));
+        localStorage.setItem("excalidraw-organizer-show-panel", "false");
+        window.location.reload();
+      } else {
+        console.error("Error getting canvas data");
+      }
+    } else {
+      // TODO
+    }
+  };
 
   return (
     <Stack style={{ flex: 1 }} p="sm">
       <Flex direction="row-reverse">
-        <Button onClick={handleNewCanvasClick}>New Canvas</Button>
+        <Button onClick={handleNewCanvasClick} rightSection={<IconPlus />}>
+          New Canvas
+        </Button>
       </Flex>
-      <Stack>
+      <Flex gap="sm" wrap="wrap">
         {canvases.map((canvas) => {
-          return <div key={canvas.canvasId}>{canvas.canvasName}</div>;
+          return (
+            <UnstyledButton
+              key={canvas.id}
+              style={{
+                border: "1px solid #dfdada",
+                borderRadius: 10,
+                padding: 10,
+              }}
+              onClick={handleCanvasItemClick.bind(null, canvas.id)}
+            >
+              <ExcalidrawPreview
+                data={{
+                  elements: canvas.elements,
+                  appState: { viewBackgroundColor: "#fff" },
+                  files: {},
+                }}
+                width={180}
+                height={120}
+                withBackground={true}
+              />
+              <Text size="xs">{canvas.name}</Text>
+            </UnstyledButton>
+          );
         })}
-      </Stack>
+      </Flex>
       {showNewCanvasNameModal && folders ? (
         <NewCanvasModal
           folders={folders}
