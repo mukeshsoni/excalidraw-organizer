@@ -177,3 +177,38 @@ export async function updateFolderWithCanvas(
     });
   }
 }
+export async function moveCanvasToFolder(
+  db: IDBPDatabase<ExcalidrawOrganizerDB> | null,
+  fromFolderId: number,
+  toFolderId: number,
+  canvasId: string,
+) {
+  if (db) {
+    const tx = db.transaction("folder", "readwrite");
+    const folderStore = tx.objectStore("folder");
+    const toFolder = await folderStore.get(IDBKeyRange.only(toFolderId));
+    const fromFolder = await folderStore.get(IDBKeyRange.only(fromFolderId));
+    if (toFolder && fromFolder) {
+      const canvas = fromFolder.canvases.find(
+        (canvas) => canvas.canvasId === canvasId,
+      );
+
+      if (canvas) {
+        await folderStore.put({
+          ...toFolder,
+          canvases: toFolder.canvases.concat({
+            canvasId,
+            canvasName: canvas.canvasName,
+          }),
+        });
+        await folderStore.put({
+          ...fromFolder,
+          canvases: fromFolder.canvases.filter(
+            (canvas) => canvas.canvasId !== canvasId,
+          ),
+        });
+      }
+    }
+    await tx.done;
+  }
+}

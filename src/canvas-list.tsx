@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { useDraggable } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
 import {
   Button,
   Flex,
@@ -107,31 +109,13 @@ export function CanvasList() {
         </Button>
       </Flex>
       <Flex gap="sm" wrap="wrap">
-        {canvases.map((canvas) => {
-          return (
-            <UnstyledButton
-              key={canvas.id}
-              style={{
-                border: "1px solid #dfdada",
-                borderRadius: 10,
-                padding: 10,
-              }}
-              onClick={handleCanvasItemClick.bind(null, canvas.id)}
-            >
-              <ExcalidrawPreview
-                data={{
-                  elements: canvas.elements,
-                  appState: { viewBackgroundColor: "#fff" },
-                  files: {},
-                }}
-                width={180}
-                height={120}
-                withBackground={true}
-              />
-              <Text size="xs">{canvas.name}</Text>
-            </UnstyledButton>
-          );
-        })}
+        {canvases.map((canvas) => (
+          <CanvasItem
+            key={canvas.id}
+            canvas={canvas}
+            onItemClick={handleCanvasItemClick}
+          />
+        ))}
       </Flex>
       {showNewCanvasNameModal && folders ? (
         <NewCanvasModal
@@ -193,5 +177,48 @@ function NewCanvasModal({ onClose, folders, onSubmit }: NewCanvasModalProps) {
         </Group>
       </Stack>
     </Modal>
+  );
+}
+
+type CanvasItemProps = {
+  canvas: ExcalidrawOrganizerDB["canvas"]["value"];
+  onItemClick: (id: string) => void;
+};
+function CanvasItem({ canvas, onItemClick }: CanvasItemProps) {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: canvas.id,
+  });
+  const style = transform
+    ? {
+        transform: CSS.Translate.toString(transform),
+      }
+    : undefined;
+
+  return (
+    <UnstyledButton
+      key={canvas.id}
+      style={{
+        border: "1px solid #dfdada",
+        borderRadius: 10,
+        padding: 10,
+        ...style,
+      }}
+      onClick={onItemClick.bind(null, canvas.id)}
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+    >
+      <ExcalidrawPreview
+        data={{
+          elements: canvas.elements,
+          appState: { viewBackgroundColor: "#fff" },
+          files: {},
+        }}
+        width={250}
+        height={180}
+        withBackground={true}
+      />
+      <Text size="xs">{canvas.name}</Text>
+    </UnstyledButton>
   );
 }

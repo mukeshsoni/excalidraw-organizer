@@ -9,6 +9,7 @@ import {
   Stack,
   Text,
   UnstyledButton,
+  useMantineTheme,
 } from "@mantine/core";
 import { IconPlus } from "@tabler/icons-react";
 import { useDatabase } from "./DbProvider";
@@ -16,6 +17,7 @@ import { getFolders, createNewFolder } from "./db";
 import { useRef, useState } from "react";
 import classes from "./folder-list.module.css";
 import { getSelectedFolderId } from "./helpers";
+import { useDroppable } from "@dnd-kit/core";
 
 export default function FolderList({
   forceUpdate,
@@ -75,15 +77,11 @@ export default function FolderList({
       </Flex>
       <Stack gap={0}>
         {folders?.map((folder) => (
-          <UnstyledButton
-            key={folder.id}
-            px="xs"
-            className={classes.item}
-            data-active={folder.id === selectedFolderId || undefined}
-            onClick={handleSelectFolderClick.bind(null, folder.id)}
-          >
-            {folder.name}
-          </UnstyledButton>
+          <DroppableFolderItem
+            folder={folder}
+            selectedFolderId={selectedFolderId}
+            onItemClick={handleSelectFolderClick}
+          />
         ))}
       </Stack>
       {showNewFolderNameModal && folders ? (
@@ -119,5 +117,51 @@ function NewFolderModal({ onClose, onSubmit }: NewFolderModalProps) {
         </Group>
       </Stack>
     </Modal>
+  );
+}
+
+type DroppableFolderItemProps = {
+  folder: { id: number; name: string };
+  selectedFolderId: number;
+  onItemClick: (id: number) => void;
+};
+function DroppableFolderItem({
+  folder,
+  selectedFolderId,
+  onItemClick,
+}: DroppableFolderItemProps) {
+  const { isOver, setNodeRef } = useDroppable({ id: folder.id });
+  const theme = useMantineTheme();
+
+  let color = theme.colors.gray[9];
+  let backgroundColor = theme.colors.gray[0];
+  if (selectedFolderId === folder.id) {
+    color = theme.colors.gray[0];
+    backgroundColor = theme.colors.blue[7];
+  }
+  if (isOver) {
+    backgroundColor = theme.colors.blue[3];
+    color = theme.colors.gray[9];
+  }
+  if (isOver && selectedFolderId === folder.id) {
+    backgroundColor = theme.colors.indigo[5];
+    color = theme.colors.gray[9];
+  }
+
+  return (
+    <UnstyledButton
+      key={folder.id}
+      px="xs"
+      className={classes.item}
+      data-active={folder.id === selectedFolderId || undefined}
+      onClick={onItemClick.bind(null, folder.id)}
+      ref={setNodeRef}
+      style={{
+        color,
+        backgroundColor,
+      }}
+    >
+      {folder.name}
+    </UnstyledButton>
   );
 }

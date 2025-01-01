@@ -1,12 +1,28 @@
 import { useEffect, useState } from "react";
 import { AppState } from "@excalidraw/excalidraw/types/types";
 import { Button, Modal, Flex, Divider } from "@mantine/core";
-import { idNameSeparator, getFolders, ExcalidrawOrganizerDB } from "./db";
+import {
+  idNameSeparator,
+  getFolders,
+  ExcalidrawOrganizerDB,
+  moveCanvasToFolder,
+} from "./db";
 
 import "./App.css";
 import { useDatabase } from "./DbProvider";
 import FolderList from "./folder-list";
 import { CanvasList } from "./canvas-list";
+import {
+  DndContext,
+  DragEndEvent,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { getSelectedFolderId } from "./helpers";
 
 const canvasListKey = "excalidraw-organizer-canvas-list";
 const panelVisibilityKey = "excalidraw-organizer-show-panel";
@@ -106,6 +122,45 @@ function App() {
     setShowPanel(true);
     localStorage.setItem(panelVisibilityKey, JSON.stringify(true));
   };
+  const sensors = useSensors(
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200,
+        tolerance: 6,
+      },
+    }),
+    useSensor(KeyboardSensor),
+  );
+  const selectedFolderId = getSelectedFolderId();
+  const queryClient = useQueryClient();
+  const moveToFolderMutation = useMutation({
+    mutationFn: ({
+      fromFolderId,
+      toFolderId,
+      canvasId,
+    }: {
+      fromFolderId: number;
+      toFolderId: number;
+      canvasId: string;
+    }) => moveCanvasToFolder(db, fromFolderId, toFolderId, canvasId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["folders"] });
+    },
+  });
+  async function handleDragEnd(event: DragEndEvent) {
+    if (event.over) {
+      moveToFolderMutation.mutate({
+        fromFolderId: selectedFolderId,
+        toFolderId: Number(event.over.id),
+        canvasId: String(event.active.id),
+      });
+    }
+  }
 
   return (
     <>
@@ -131,9 +186,11 @@ function App() {
         size={"100%"}
       >
         <Flex>
-          <FolderList forceUpdate={forceUpdate} />
-          <Divider orientation="vertical" />
-          <CanvasList />
+          <DndContext onDragEnd={handleDragEnd} sensors={sensors}>
+            <FolderList forceUpdate={forceUpdate} />
+            <Divider orientation="vertical" />
+            <CanvasList />
+          </DndContext>
         </Flex>
       </Modal>
     </>
