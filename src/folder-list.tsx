@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ActionIcon,
   Button,
@@ -8,15 +8,24 @@ import {
   Modal,
   Stack,
   Text,
+  UnstyledButton,
 } from "@mantine/core";
 import { IconPlus } from "@tabler/icons-react";
 import { useDatabase } from "./DbProvider";
 import { getFolders, createNewFolder } from "./db";
 import { useRef, useState } from "react";
+import classes from "./folder-list.module.css";
+import { getSelectedFolderId } from "./helpers";
 
-export default function FolderList() {
+export default function FolderList({
+  forceUpdate,
+}: {
+  forceUpdate: () => void;
+}) {
   const [showNewFolderNameModal, setShowNewFolderNameModal] = useState(false);
   const db = useDatabase();
+  const queryClient = useQueryClient();
+
   const { data: folders, refetch } = useQuery({
     queryKey: ["folders"],
     queryFn: () => getFolders(db),
@@ -37,6 +46,20 @@ export default function FolderList() {
     }
     setShowNewFolderNameModal(false);
   };
+  function handleSelectFolderClick(id: number) {
+    localStorage.setItem("excalidraw-organizer-selected-folder-id", String(id));
+    setSelectedFolderId(id);
+    queryClient.invalidateQueries({ queryKey: ["folders"] });
+    // Force updating from the top because otherwise the canvases for
+    // the selected folders won't get updated
+    // Simply invalidating the query won't trigger a re-render
+    // Invalidating a query only makes sure that a refetch is triggered
+    // if the hook is called again
+    forceUpdate();
+  }
+  const [selectedFolderId, setSelectedFolderId] = useState(
+    getSelectedFolderId(),
+  );
 
   return (
     <Stack style={{ width: 250 }}>
@@ -50,11 +73,19 @@ export default function FolderList() {
           <IconPlus fill="none" />
         </ActionIcon>
       </Flex>
-      {folders?.map((folder) => (
-        <Flex key={folder.id} px="xs">
-          <Text>{folder.name}</Text>
-        </Flex>
-      ))}
+      <Stack gap={0}>
+        {folders?.map((folder) => (
+          <UnstyledButton
+            key={folder.id}
+            px="xs"
+            className={classes.item}
+            data-active={folder.id === selectedFolderId || undefined}
+            onClick={handleSelectFolderClick.bind(null, folder.id)}
+          >
+            {folder.name}
+          </UnstyledButton>
+        ))}
+      </Stack>
       {showNewFolderNameModal && folders ? (
         <NewFolderModal
           onClose={handeNewFolderModalClose}

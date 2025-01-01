@@ -1,6 +1,6 @@
 import { ExcalidrawElement } from "@excalidraw/excalidraw/types/element/types";
 import { AppState } from "@excalidraw/excalidraw/types/types";
-import { idNameSeparator } from "./db";
+import { DEFAULT_FOLDER_ID, idNameSeparator } from "./db";
 
 export const getActiveCanvas = (): {
   id: string;
@@ -67,4 +67,10 @@ export function getCurrentCanvasDetails(): {
       elements: [],
     };
   }
+}
+export function getSelectedFolderId() {
+  return (
+    Number(localStorage.getItem("excalidraw-organizer-selected-folder-id")) ||
+    DEFAULT_FOLDER_ID
+  );
 }

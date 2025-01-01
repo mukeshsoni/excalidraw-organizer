@@ -140,6 +140,7 @@ export async function createNewFolder(
     name,
     canvases: [],
   };
+  // @ts-expect-error abc
   await db.add("folder", folder);
   return folder;
 }

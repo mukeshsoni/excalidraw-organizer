@@ -17,6 +17,7 @@ import {
   saveExistingCanvasToDb,
   updateFolderWithCanvas,
 } from "./db";
+import { getSelectedFolderId } from "./helpers";
 
 export function CanvasList() {
   const [showNewCanvasNameModal, setShowNewCanvasNameModal] = useState(false);
@@ -26,12 +27,8 @@ export function CanvasList() {
     queryFn: () => getFolders(db),
     enabled: !!db,
   });
-  let selectedFolderId = Number(
-    localStorage.getItem("excalidraw-organizer-selected-folder-id"),
-  );
-  if (!selectedFolderId) {
-    selectedFolderId = DEFAULT_FOLDER_ID;
-  }
+  console.log("CanvasList: folders: ", folders);
+  const selectedFolderId = getSelectedFolderId();
   const canvases =
     folders?.find((folder) => folder.id === selectedFolderId)?.canvases || [];
   function handleNewCanvasClick() {

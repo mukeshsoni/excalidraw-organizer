@@ -25,7 +25,12 @@ const panelVisibilityKey = "excalidraw-organizer-show-panel";
 //   return appState.name.includes(canvas.id + idNameSeparator);
 // }
 
+function useForceUpdate() {
+  const [, setToggle] = useState(false);
+  return () => setToggle((toggle) => !toggle);
+}
 function App() {
+  const forceUpdate = useForceUpdate();
   console.log("abc");
   // const theme = useMantineTheme();
   const [folders, setFolders] = useState<
@@ -112,10 +117,6 @@ function App() {
     localStorage.setItem(panelVisibilityKey, JSON.stringify(true));
   };
 
-  const handleSaveAsClick = () => {
-    setShowRenameModal(true);
-  };
-
   // const handleCanvasItemClick = async ({
   //   id,
   //   name,
@@ -141,26 +142,6 @@ function App() {
   //     // TODO
   //   }
   // };
-  async function getCanvases() {
-    if (db) {
-      const canvases = await db.getAll("canvas");
-      console.log({ canvases });
-      const canvas = await db.get("canvas", IDBKeyRange.only(1));
-      console.log({ canvas });
-    }
-  }
-  function getFolderTreeData() {
-    const folderTreeData = folders.map((folder) => ({
-      label: folder.name,
-      value: folder.name,
-      children: folder.canvases.map((canvas) => ({
-        label: canvas.canvasName,
-        value: canvas.canvasId,
-      })),
-    }));
-    console.log({ folderTreeData });
-    return folderTreeData;
-  }
   const handleRenameModalClose = () => {
     setShowRenameModal(false);
   };
@@ -202,7 +183,7 @@ function App() {
         size={"100%"}
       >
         <Flex>
-          <FolderList />
+          <FolderList forceUpdate={forceUpdate} />
           <Divider orientation="vertical" />
           <CanvasList />
         </Flex>
