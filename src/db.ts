@@ -15,6 +15,10 @@ export interface ExcalidrawOrganizerDB extends DBSchema {
       // which will have elements and can get very very huge
       // This is for rendering the folders with canvases inside them
       canvases: Array<{ canvasId: string; canvasName: string }>;
+      // Will store the ISO string of the time
+      created_at: string;
+      // Will store the ISO string of the time
+      updated_at: string;
     };
     indexes: { "folder-name": string; "folder-id": number };
   };
@@ -25,6 +29,10 @@ export interface ExcalidrawOrganizerDB extends DBSchema {
       name: string;
       elements: Array<ExcalidrawElement>;
       appState: Partial<AppState> & { name: string };
+      // Will store the ISO string of the time
+      created_at: string;
+      // Will store the ISO string of the time
+      updated_at: string;
     };
     indexes: { "canvas-name": string; "canvas-id": string };
   };
@@ -67,6 +75,8 @@ export async function initializeDB() {
         name: canvasName,
         elements,
         appState,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       });
 
       console.log("Adding a default folder");
@@ -76,6 +86,8 @@ export async function initializeDB() {
         id: DEFAULT_FOLDER_ID,
         name: DEFAULT_FOLDER_NAME,
         canvases: [{ canvasId, canvasName }],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       });
     } catch (e) {
       console.error("Error adding default folder", e);
@@ -128,8 +140,18 @@ export async function saveExistingCanvasToDb(
 ) {
   // save the existing canvas to local storage
   const currentCanvas = getActiveCanvas();
+
   if (currentCanvas) {
-    await db.put("canvas", currentCanvas);
+    const tx = db.transaction("canvas", "readwrite");
+    const canvasStore = tx.objectStore("canvas");
+    const canvas = await canvasStore.get(currentCanvas.id);
+    if (canvas) {
+      await db.put("canvas", {
+        ...canvas,
+        ...currentCanvas,
+        updated_at: new Date().toISOString(),
+      });
+    }
   }
 }
 export async function createNewFolder(
@@ -139,6 +161,8 @@ export async function createNewFolder(
   const folder = {
     name,
     canvases: [],
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
   // @ts-expect-error abc
   await db.add("folder", folder);
@@ -157,6 +181,8 @@ export async function createNewCanvas(
     name,
     appState,
     elements: [],
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
   await db.add("canvas", canvas);
   return canvas;

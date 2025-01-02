@@ -170,7 +170,7 @@ function App() {
           variant="transparent"
           style={{
             transform: "rotate(-90deg)",
-            top: 800,
+            top: window.innerHeight - 200,
             left: -30,
             height: 19,
             padding: 2,

@@ -62,8 +62,7 @@ export function CanvasList() {
   const handleNewCanvasNameModalClose = () => {
     setShowNewCanvasNameModal(false);
   };
-  const handleNewCanvasNameChange = async (name: string, folderId: number) => {
-    // TODO
+  const handleNewCanvasSubmit = async (name: string, folderId: number) => {
     if (db) {
       // 1. save existing canvas data
       await saveExistingCanvasToDb(db);
@@ -75,6 +74,7 @@ export function CanvasList() {
       // 4. Update excalidraw and excalidraw-state local storage
       localStorage.setItem("excalidraw-state", JSON.stringify(canvas.appState));
       localStorage.setItem("excalidraw", JSON.stringify(canvas.elements));
+      localStorage.setItem("excalidraw-organizer-show-panel", "false");
       // 5. Reload the page
       window.location.reload();
     }
@@ -121,7 +121,7 @@ export function CanvasList() {
         <NewCanvasModal
           folders={folders}
           onClose={handleNewCanvasNameModalClose}
-          onSubmit={handleNewCanvasNameChange}
+          onSubmit={handleNewCanvasSubmit}
         />
       ) : null}
     </Stack>
@@ -158,7 +158,7 @@ function NewCanvasModal({ onClose, folders, onSubmit }: NewCanvasModalProps) {
   return (
     <Modal opened={true} onClose={onClose} title="Create new canvas" centered>
       <Stack gap={12}>
-        <Input placeholder="Enter name" ref={nameInputRef} />
+        <Input placeholder="Enter name" ref={nameInputRef} data-autofocus />
         <Select
           onChange={handleFolderChange}
           label="Select folder"
@@ -214,8 +214,8 @@ function CanvasItem({ canvas, onItemClick }: CanvasItemProps) {
           appState: { viewBackgroundColor: "#fff" },
           files: {},
         }}
-        width={250}
-        height={180}
+        width={window.innerWidth / 5}
+        height={window.innerWidth / 5 - 40}
         withBackground={true}
       />
       <Text size="xs">{canvas.name}</Text>
