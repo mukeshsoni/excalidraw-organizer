@@ -170,7 +170,7 @@ function App() {
           variant="transparent"
           style={{
             transform: "rotate(-90deg)",
-            top: 300,
+            top: 800,
             left: -30,
             height: 19,
             padding: 2,
@@ -180,12 +180,25 @@ function App() {
         </Button>
       ) : null}
       <Modal
+        title="Organizer"
         opened={showPanel && !!db}
         onClose={handleDrawerClose}
         centered
         size={"100%"}
+        styles={{
+          content: {
+            minHeight: "80vh",
+            display: "flex",
+            flexDirection: "column",
+          },
+          body: {
+            display: "flex",
+            flexDirection: "column",
+            flex: 1,
+          },
+        }}
       >
-        <Flex>
+        <Flex style={{ flex: 1 }}>
           <DndContext onDragEnd={handleDragEnd} sensors={sensors}>
             <FolderList forceUpdate={forceUpdate} />
             <Divider orientation="vertical" />
