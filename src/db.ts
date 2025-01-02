@@ -1,7 +1,11 @@
 import { DBSchema, IDBPDatabase, openDB } from "idb";
 import { ExcalidrawElement } from "@excalidraw/excalidraw/types/element/types";
 import { AppState } from "@excalidraw/excalidraw/types/types";
-import { getActiveCanvas, getCurrentCanvasDetails } from "./helpers";
+import {
+  getActiveCanvas,
+  getCurrentCanvasDetails,
+  setLastSavedSceneVersion,
+} from "./helpers";
 
 export interface ExcalidrawOrganizerDB extends DBSchema {
   folder: {
@@ -151,6 +155,7 @@ export async function saveExistingCanvasToDb(
         ...currentCanvas,
         updated_at: new Date().toISOString(),
       });
+      setLastSavedSceneVersion();
     }
   }
 }

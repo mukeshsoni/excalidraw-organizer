@@ -1,6 +1,7 @@
 import { ExcalidrawElement } from "@excalidraw/excalidraw/types/element/types";
 import { AppState } from "@excalidraw/excalidraw/types/types";
 import { DEFAULT_FOLDER_ID, idNameSeparator } from "./db";
+import { getSceneVersion } from "@excalidraw/excalidraw";
 
 export const getActiveCanvas = (): {
   id: string;
@@ -72,5 +73,27 @@ export function getSelectedFolderId() {
   return (
     Number(localStorage.getItem("excalidraw-organizer-selected-folder-id")) ||
     DEFAULT_FOLDER_ID
+  );
+}
+const LOCAL_STORAGE_KEY_PREFIX = "excalidraw-organizer";
+export function getLastSavedSceneVersion(): number {
+  return (
+    Number(
+      localStorage.getItem(
+        `${LOCAL_STORAGE_KEY_PREFIX}-last-saved-scene-version`,
+      ),
+    ) || 0
+  );
+}
+export function getActiveCanvasSceneVersion(): number {
+  const elements = JSON.parse(
+    localStorage.getItem("excalidraw") || "[]",
+  ) as ExcalidrawElement[];
+  return getSceneVersion(elements);
+}
+export function setLastSavedSceneVersion() {
+  localStorage.setItem(
+    `${LOCAL_STORAGE_KEY_PREFIX}-last-saved-scene-version`,
+    JSON.stringify(getActiveCanvasSceneVersion()),
   );
 }

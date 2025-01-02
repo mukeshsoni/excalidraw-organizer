@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AppState } from "@excalidraw/excalidraw/types/types";
 import { Button, Modal, Flex, Divider } from "@mantine/core";
 import {
   idNameSeparator,
-  getFolders,
-  ExcalidrawOrganizerDB,
   moveCanvasToFolder,
+  saveExistingCanvasToDb,
 } from "./db";
 
 import "./App.css";
@@ -22,7 +21,11 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { getSelectedFolderId } from "./helpers";
+import {
+  getActiveCanvasSceneVersion,
+  getLastSavedSceneVersion,
+  getSelectedFolderId,
+} from "./helpers";
 
 const canvasListKey = "excalidraw-organizer-canvas-list";
 const panelVisibilityKey = "excalidraw-organizer-show-panel";
@@ -38,24 +41,11 @@ function useForceUpdate() {
 }
 function App() {
   const forceUpdate = useForceUpdate();
-  console.log("abc");
-  // const theme = useMantineTheme();
-  const [folders, setFolders] = useState<
-    ExcalidrawOrganizerDB["folder"]["value"][]
-  >([]);
-  console.log({ folders });
   const [canvases, setCanvases] = useState<Array<{ id: string; name: string }>>(
     [],
   );
   const [showPanel, setShowPanel] = useState(false);
   const db = useDatabase();
-
-  // Once we initialize the db, get the folders and canvases
-  useEffect(() => {
-    if (db) {
-      getFolders(db).then(setFolders);
-    }
-  }, [db]);
 
   useEffect(() => {
     const show = JSON.parse(
@@ -161,6 +151,32 @@ function App() {
       });
     }
   }
+  const saveActiveCanvasToDb = useCallback(() => {
+    if (db) {
+      const lastSavedSceneVersion = getLastSavedSceneVersion();
+      const sceneVersion = getActiveCanvasSceneVersion();
+
+      if (sceneVersion !== lastSavedSceneVersion) {
+        saveExistingCanvasToDb(db);
+      }
+    } else {
+      // TODO
+    }
+  }, [db]);
+  // save the current canvas to db every second
+  useEffect(() => {
+    const SAVE_INTERVAL = 1000; // 1 second
+    let timeoutHandle: number;
+    function _saveCanvasToDb() {
+      saveActiveCanvasToDb();
+      timeoutHandle = setTimeout(_saveCanvasToDb, SAVE_INTERVAL);
+    }
+    timeoutHandle = setTimeout(_saveCanvasToDb, SAVE_INTERVAL);
+
+    return () => {
+      clearTimeout(timeoutHandle);
+    };
+  }, [saveActiveCanvasToDb]);
 
   return (
     <>
