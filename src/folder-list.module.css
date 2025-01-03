@@ -1,6 +1,5 @@
 .item {
     cursor: pointer;
-    display: block;
     text-decoration: none;
     color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
     padding: 0 var(--mantine-spacing-md);

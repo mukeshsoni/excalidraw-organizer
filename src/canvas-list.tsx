@@ -39,7 +39,6 @@ import {
 import {
   getActiveCanvasId,
   getSelectedFolderId,
-  getSelectedFolderId,
   LOCAL_STORAGE_KEY_PREFIX,
   setActiveCanvasId,
 } from "./helpers";

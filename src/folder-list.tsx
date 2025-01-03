@@ -6,26 +6,44 @@ import {
   Flex,
   Group,
   Input,
+  Menu,
   Modal,
+  rem,
   Stack,
   Text,
   UnstyledButton,
   useMantineTheme,
 } from "@mantine/core";
-import { IconPlus } from "@tabler/icons-react";
+import {
+  IconDotsVertical,
+  IconPencil,
+  IconPlus,
+  IconTrash,
+} from "@tabler/icons-react";
 import { useDroppable } from "@dnd-kit/core";
 
 import { useDatabase } from "./DbProvider";
-import { getFolders, createNewFolder } from "./db";
+import {
+  getFolders,
+  createNewFolder,
+  DEFAULT_FOLDER_ID,
+  ExcalidrawOrganizerDB,
+  updateFolderName,
+} from "./db";
 import classes from "./folder-list.module.css";
 import { getSelectedFolderId, setSelectedFolderIdInStorage } from "./helpers";
+import { NameModal } from "./rename-canvas";
 
+type Folder = ExcalidrawOrganizerDB["folder"]["value"];
 export default function FolderList({
   forceUpdate,
 }: {
   forceUpdate: () => void;
 }) {
   const [showNewFolderNameModal, setShowNewFolderNameModal] = useState(false);
+  const [folderToRename, setFolderToRename] = useState<Folder | null>(null);
+  const [folderIdToDelete, setFolderIdToDelete] = useState<string | null>(null);
+
   const db = useDatabase();
   const queryClient = useQueryClient();
 
@@ -63,36 +81,67 @@ export default function FolderList({
   const [selectedFolderId, setSelectedFolderId] = useState(
     getSelectedFolderId(),
   );
+  function handleFolderRenameClick(folder: Folder) {
+    setFolderToRename(folder);
+  }
+  function handleFolderDeleteClick(id: number) {
+    setFolderIdToDelete(String(id));
+  }
+  function handleRenameModalClose() {
+    setFolderToRename(null);
+  }
+  async function handleCanvasRenameSubmit(name: string) {
+    if (db && folderToRename) {
+      try {
+        await updateFolderName(db, folderToRename.id, name);
+        queryClient.invalidateQueries({ queryKey: ["folders"] });
+      } catch (e) {
+        console.error("Error renaming folder", e);
+      }
+      setFolderToRename(null);
+    }
+  }
 
   return (
-    <Stack style={{ minWidth: window.innerWidth / 5 }}>
-      <Flex align="center" justify="space-between" px="xs">
-        <Text>Folders</Text>
-        <ActionIcon
-          onClick={handleNewFolderClick}
-          aria-label="New Folder"
-          variant="light"
-          title="New Folder"
-        >
-          <IconPlus fill="none" />
-        </ActionIcon>
-      </Flex>
-      <Stack gap={0}>
-        {folders?.map((folder) => (
-          <DroppableFolderItem
-            folder={folder}
-            selectedFolderId={selectedFolderId}
-            onItemClick={handleSelectFolderClick}
+    <>
+      <Stack style={{ minWidth: window.innerWidth / 5 }}>
+        <Flex align="center" justify="space-between" px="xs">
+          <Text>Folders</Text>
+          <ActionIcon
+            onClick={handleNewFolderClick}
+            aria-label="New Folder"
+            variant="light"
+            title="New Folder"
+          >
+            <IconPlus fill="none" />
+          </ActionIcon>
+        </Flex>
+        <Stack gap={0}>
+          {folders?.map((folder) => (
+            <DroppableFolderItem
+              folder={folder}
+              selectedFolderId={selectedFolderId}
+              onItemClick={handleSelectFolderClick}
+              onRename={handleFolderRenameClick}
+              onDelete={handleFolderDeleteClick}
+            />
+          ))}
+        </Stack>
+        {showNewFolderNameModal && folders ? (
+          <NewFolderModal
+            onClose={handeNewFolderModalClose}
+            onSubmit={handleNewFolderSubmit}
           />
-        ))}
+        ) : null}
       </Stack>
-      {showNewFolderNameModal && folders ? (
-        <NewFolderModal
-          onClose={handeNewFolderModalClose}
-          onSubmit={handleNewFolderSubmit}
+      {folderToRename ? (
+        <NameModal
+          defaultValue={folderToRename.name}
+          onClose={handleRenameModalClose}
+          onSubmit={handleCanvasRenameSubmit}
         />
       ) : null}
-    </Stack>
+    </>
   );
 }
 
@@ -127,14 +176,18 @@ function NewFolderModal({ onClose, onSubmit }: NewFolderModalProps) {
 }
 
 type DroppableFolderItemProps = {
-  folder: { id: number; name: string };
+  folder: Folder;
   selectedFolderId: number;
   onItemClick: (id: number) => void;
+  onRename: (folder: Folder) => void;
+  onDelete: (id: number) => void;
 };
 function DroppableFolderItem({
   folder,
   selectedFolderId,
   onItemClick,
+  onRename,
+  onDelete,
 }: DroppableFolderItemProps) {
   const { isOver, setNodeRef } = useDroppable({ id: folder.id });
   const theme = useMantineTheme();
@@ -153,21 +206,71 @@ function DroppableFolderItem({
     backgroundColor = theme.colors.indigo[5];
     color = theme.colors.gray[9];
   }
+  function handleRenameClick(e: React.MouseEvent<HTMLButtonElement>) {
+    e.stopPropagation();
+    onRename(folder);
+  }
+  function handleDeleteClick(e: React.MouseEvent<HTMLButtonElement>) {
+    e.stopPropagation();
+    onDelete(folder.id);
+  }
+  const selected = selectedFolderId === folder.id;
 
   return (
-    <UnstyledButton
-      key={folder.id}
-      px="xs"
-      className={classes.item}
-      data-active={folder.id === selectedFolderId || undefined}
-      onClick={onItemClick.bind(null, folder.id)}
+    <Group
+      justify="space-between"
       ref={setNodeRef}
+      className={classes.item}
       style={{
         color,
         backgroundColor,
       }}
+      data-active={selected || undefined}
+      px="xs"
+      key={folder.id}
     >
-      {folder.name}
-    </UnstyledButton>
+      <UnstyledButton
+        onClick={onItemClick.bind(null, folder.id)}
+        style={{
+          flex: 1,
+        }}
+      >
+        {folder.name}
+      </UnstyledButton>
+      {folder.id !== DEFAULT_FOLDER_ID ? (
+        <Menu>
+          <Menu.Target>
+            <ActionIcon
+              variant="transparent"
+              color={selected ? "white" : "black"}
+              size="xs"
+              aria-label="Show folder actions"
+            >
+              <IconDotsVertical />
+            </ActionIcon>
+          </Menu.Target>
+          <Menu.Dropdown>
+            <Menu.Item
+              leftSection={
+                <IconPencil style={{ width: rem(14), height: rem(14) }} />
+              }
+              onClick={handleRenameClick}
+            >
+              Rename
+            </Menu.Item>
+            {folder.id !== DEFAULT_FOLDER_ID ? (
+              <Menu.Item
+                leftSection={
+                  <IconTrash style={{ width: rem(14), height: rem(14) }} />
+                }
+                onClick={handleDeleteClick}
+              >
+                Delete
+              </Menu.Item>
+            ) : null}
+          </Menu.Dropdown>
+        </Menu>
+      ) : null}
+    </Group>
   );
 }

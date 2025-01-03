@@ -341,3 +341,20 @@ export async function deleteCanvas(
   }
   await tx.done;
 }
+export async function updateFolderName(
+  db: IDBPDatabase<ExcalidrawOrganizerDB>,
+  id: number,
+  name: string,
+) {
+  const tx = db.transaction("folder", "readwrite");
+  const folderStore = tx.objectStore("folder");
+  const folder = await folderStore.get(IDBKeyRange.only(id));
+  if (folder) {
+    await folderStore.put({
+      ...folder,
+      name,
+      updated_at: new Date().toISOString(),
+    });
+  }
+  await tx.done;
+}
