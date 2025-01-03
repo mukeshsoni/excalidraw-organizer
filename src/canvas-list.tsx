@@ -135,7 +135,6 @@ export function CanvasList() {
   }
   function handleCanvasDeleteClick(id: string) {
     const activeCanvasId = getActiveCanvasId();
-    console.log({ activeCanvasId, id });
     if (activeCanvasId === id) {
       alert(
         "Sorry, you can't delete the active canvas. I am trying to figure out how to make that happen.",
@@ -201,17 +200,21 @@ export function CanvasList() {
         onClose={handleDeleteConfirmationDialogClose}
         centered
       >
-        Are you sure you want to delete the canvas? This action cannot be
-        undone.
-        <Group style={{ flexDirection: "row-reverse" }} gap={8}>
-          <Button onClick={handleDeleteConfirmation}>Delete</Button>
-          <Button
-            variant="outline"
-            onClick={handleDeleteConfirmationDialogClose}
-          >
-            Cancel
-          </Button>
-        </Group>
+        <Stack>
+          <Text>
+            Are you sure you want to delete the canvas? This action cannot be
+            undone.
+          </Text>
+          <Group style={{ flexDirection: "row-reverse" }} gap={8}>
+            <Button onClick={handleDeleteConfirmation}>Delete</Button>
+            <Button
+              variant="outline"
+              onClick={handleDeleteConfirmationDialogClose}
+            >
+              Cancel
+            </Button>
+          </Group>
+        </Stack>
       </Modal>
       {showNewCanvasNameModal && folders ? (
         <NewCanvasModal
@@ -222,6 +225,7 @@ export function CanvasList() {
       ) : null}
       {canvasToRename ? (
         <NameModal
+          title="Rename canvas"
           defaultValue={canvasToRename.name}
           onClose={handleRenameModalClose}
           onSubmit={handleCanvasRenameSubmit}

@@ -29,6 +29,7 @@ import {
   DEFAULT_FOLDER_ID,
   ExcalidrawOrganizerDB,
   updateFolderName,
+  deleteFolder,
 } from "./db";
 import classes from "./folder-list.module.css";
 import { getSelectedFolderId, setSelectedFolderIdInStorage } from "./helpers";
@@ -42,7 +43,7 @@ export default function FolderList({
 }) {
   const [showNewFolderNameModal, setShowNewFolderNameModal] = useState(false);
   const [folderToRename, setFolderToRename] = useState<Folder | null>(null);
-  const [folderIdToDelete, setFolderIdToDelete] = useState<string | null>(null);
+  const [folderIdToDelete, setFolderIdToDelete] = useState<number | null>(null);
 
   const db = useDatabase();
   const queryClient = useQueryClient();
@@ -69,7 +70,6 @@ export default function FolderList({
   };
   function handleSelectFolderClick(id: number) {
     setSelectedFolderIdInStorage(id);
-    setSelectedFolderId(id);
     queryClient.invalidateQueries({ queryKey: ["folders"] });
     // Force updating from the top because otherwise the canvases for
     // the selected folders won't get updated
@@ -78,18 +78,43 @@ export default function FolderList({
     // if the hook is called again
     forceUpdate();
   }
-  const [selectedFolderId, setSelectedFolderId] = useState(
-    getSelectedFolderId(),
-  );
+  const selectedFolderId = getSelectedFolderId();
   function handleFolderRenameClick(folder: Folder) {
     setFolderToRename(folder);
   }
   function handleFolderDeleteClick(id: number) {
-    setFolderIdToDelete(String(id));
+    setFolderIdToDelete(id);
   }
   function handleRenameModalClose() {
     setFolderToRename(null);
   }
+  function handleDeleteConfirmationDialogClose() {
+    setFolderIdToDelete(null);
+  }
+  async function handleDeleteConfirmation() {
+    if (folderIdToDelete === DEFAULT_FOLDER_ID) {
+      alert("Cannot delete the default folder");
+      return;
+    }
+
+    // TODO: What if the active canvas is in the folder to delete?
+    if (folderIdToDelete && db) {
+      try {
+        await deleteFolder(db, folderIdToDelete);
+        if (folderIdToDelete === getSelectedFolderId()) {
+          setSelectedFolderIdInStorage(DEFAULT_FOLDER_ID);
+        }
+        // set the default folder as selected if this was the selected folder
+        queryClient.invalidateQueries({ queryKey: ["folders"] });
+        forceUpdate();
+      } catch (e) {
+        console.error("Error deleting folder", e);
+        alert(e);
+      }
+      setFolderIdToDelete(null);
+    }
+  }
+
   async function handleCanvasRenameSubmit(name: string) {
     if (db && folderToRename) {
       try {
@@ -136,11 +161,34 @@ export default function FolderList({
       </Stack>
       {folderToRename ? (
         <NameModal
+          title="Rename folder"
           defaultValue={folderToRename.name}
           onClose={handleRenameModalClose}
           onSubmit={handleCanvasRenameSubmit}
         />
       ) : null}
+      <Modal
+        opened={!!folderIdToDelete}
+        title="Delete Canvas"
+        onClose={handleDeleteConfirmationDialogClose}
+        centered
+      >
+        <Stack>
+          <Text>
+            Are you sure you want to delete the folder? All the canvases inside
+            the folder will also be deleted.
+          </Text>
+          <Group style={{ flexDirection: "row-reverse" }} gap={8}>
+            <Button onClick={handleDeleteConfirmation}>Delete</Button>
+            <Button
+              variant="outline"
+              onClick={handleDeleteConfirmationDialogClose}
+            >
+              Cancel
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </>
   );
 }

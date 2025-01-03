@@ -176,48 +176,4 @@ function App() {
   );
 }
 
-// type NameModalProps = {
-//   defaultValue?: string;
-//   onClose: () => void;
-//   onNameChange: (name: string) => void;
-// };
-
-// function NameModal({ defaultValue, onClose, onNameChange }: NameModalProps) {
-//   const nameInputRef = useRef<HTMLInputElement>(null);
-//   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-//     console.log("name changed to", e.currentTarget.value);
-//   };
-//   const handleSaveNameClick = () => {
-//     // TODO
-//     if (nameInputRef.current) {
-//       console.log("name changed to", nameInputRef.current.value);
-//       onNameChange(nameInputRef.current.value);
-//     }
-//   };
-//   return (
-//     <Modal
-//       opened={true}
-//       onClose={onClose}
-//       title="Save as"
-//       centered
-//       style={{ zIndex: 10000 }}
-//     >
-//       <Stack gap={12}>
-//         <Input
-//           placeholder="Enter name"
-//           onChange={handleNameChange}
-//           defaultValue={defaultValue}
-//           ref={nameInputRef}
-//         />
-//         <Group style={{ flexDirection: "row-reverse" }} gap={8}>
-//           <Button onClick={handleSaveNameClick}>Save</Button>
-//           <Button variant="outline" onClick={onClose}>
-//             Cancel
-//           </Button>
-//         </Group>
-//       </Stack>
-//     </Modal>
-//   );
-// }
-
 export default App;

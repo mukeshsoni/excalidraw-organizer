@@ -2,12 +2,18 @@ import { Button, Group, Input, Modal, Stack } from "@mantine/core";
 import { useRef } from "react";
 
 type NameModalProps = {
+  title: string;
   defaultValue?: string;
   onClose: () => void;
   onSubmit: (name: string) => void;
 };
 
-export function NameModal({ defaultValue, onClose, onSubmit }: NameModalProps) {
+export function NameModal({
+  title,
+  defaultValue,
+  onClose,
+  onSubmit,
+}: NameModalProps) {
   const nameInputRef = useRef<HTMLInputElement>(null);
   const handleSaveNameClick = () => {
     if (nameInputRef.current) {
@@ -19,7 +25,7 @@ export function NameModal({ defaultValue, onClose, onSubmit }: NameModalProps) {
     <Modal
       opened={true}
       onClose={onClose}
-      title="Save as"
+      title={title}
       centered
       style={{ zIndex: 10000 }}
     >

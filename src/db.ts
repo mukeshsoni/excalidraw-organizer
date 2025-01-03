@@ -358,3 +358,33 @@ export async function updateFolderName(
   }
   await tx.done;
 }
+export async function deleteFolder(
+  db: IDBPDatabase<ExcalidrawOrganizerDB>,
+  id: number,
+) {
+  if (id === DEFAULT_FOLDER_ID) {
+    throw new Error("Cannot delete default folder");
+  }
+  const tx = db.transaction(["folder", "canvas"], "readwrite");
+  const folderStore = tx.objectStore("folder");
+  const canvasStore = tx.objectStore("canvas");
+
+  const folder = await folderStore.get(IDBKeyRange.only(id));
+  if (folder) {
+    const activeCanvasId = getActiveCanvasId();
+    const activeCanvasInFolder = folder.canvases.some(
+      (canvas) => canvas.canvasId === activeCanvasId,
+    );
+
+    if (activeCanvasInFolder) {
+      throw new Error("Cannot delete folder with active canvas");
+    }
+    // Delete all canvases in the folder
+    for (const canvas of folder.canvases) {
+      await canvasStore.delete(canvas.canvasId);
+    }
+    // Delete the folder itself
+    await folderStore.delete(IDBKeyRange.only(id));
+  }
+  await tx.done;
+}
