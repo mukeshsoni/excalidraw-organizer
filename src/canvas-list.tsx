@@ -2,18 +2,27 @@ import { useEffect, useRef, useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import {
+  ActionIcon,
   Button,
+  Divider,
   Flex,
   Group,
   Input,
+  Menu,
   Modal,
+  rem,
   Select,
   Stack,
   Text,
   UnstyledButton,
 } from "@mantine/core";
-import { useQuery } from "@tanstack/react-query";
-import { IconPlus } from "@tabler/icons-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  IconPlus,
+  IconDotsVertical,
+  IconTrash,
+  IconPencil,
+} from "@tabler/icons-react";
 import { useDatabase } from "./DbProvider";
 import {
   createNewCanvas,
@@ -22,17 +31,28 @@ import {
   getCanvasFromDb,
   getFolders,
   saveExistingCanvasToDb,
+  updateCanvasName,
+  updateFolderCanvasDetails,
   updateFolderWithCanvas,
 } from "./db";
-import { getSelectedFolderId } from "./helpers";
+import {
+  getActiveFolderId,
+  getSelectedFolderId,
+  LOCAL_STORAGE_KEY_PREFIX,
+  setActiveCanvasId,
+} from "./helpers";
 import { ExcalidrawPreview } from "./preview";
+import { NameModal } from "./rename-canvas";
 
+type Canvas = ExcalidrawOrganizerDB["canvas"]["value"];
 export function CanvasList() {
   const [showNewCanvasNameModal, setShowNewCanvasNameModal] = useState(false);
+  const [canvasToRename, setCanvasToRename] = useState<Canvas | null>(null);
   const [canvases, setCanvases] = useState<
     ExcalidrawOrganizerDB["canvas"]["value"][]
   >([]);
   const db = useDatabase();
+  const queryClient = useQueryClient();
   const { data: folders } = useQuery({
     queryKey: ["folders"],
     queryFn: () => getFolders(db),
@@ -74,6 +94,7 @@ export function CanvasList() {
       // 4. Update excalidraw and excalidraw-state local storage
       localStorage.setItem("excalidraw-state", JSON.stringify(canvas.appState));
       localStorage.setItem("excalidraw", JSON.stringify(canvas.elements));
+      setActiveCanvasId(canvas.id);
       localStorage.setItem("excalidraw-organizer-show-panel", "false");
       // 5. Reload the page
       window.location.reload();
@@ -86,6 +107,13 @@ export function CanvasList() {
       // Get the canvas for the clicked item
       const canvas = await getCanvasFromDb(db, id);
       if (canvas) {
+        // Very important. Otherwise our 1 second save interval will save
+        // the new canvas to the old id
+        setActiveCanvasId(canvas.id);
+        localStorage.setItem(
+          `${LOCAL_STORAGE_KEY_PREFIX}-do-not-save-canvas-now`,
+          "true",
+        );
         localStorage.setItem(
           "excalidraw-state",
           JSON.stringify(canvas.appState),
@@ -100,6 +128,31 @@ export function CanvasList() {
       // TODO
     }
   };
+  function handleCanvasRename(canvas: Canvas) {
+    setCanvasToRename(canvas);
+  }
+  function handleRenameModalClose() {
+    setCanvasToRename(null);
+  }
+  async function handleCanvasRenameSubmit(name: string) {
+    // TODO: Not a good idea to replicate the canvas name in 3 places - canvas itself, inside folder, inside excalidraw appstate
+    if (db && canvasToRename) {
+      // Update the canvas name in the db. Need to update name inside appState as well.
+      // Inside canvas in db as well as local storage if the canvas is currently active
+      await updateCanvasName(db, canvasToRename.id, name);
+      // Update the canvas name in the folder
+      await updateFolderCanvasDetails(
+        db,
+        getSelectedFolderId(),
+        canvasToRename.id,
+        name,
+      );
+      // Refetch folder details
+      queryClient.invalidateQueries({ queryKey: ["folders"] });
+      // Close the modal
+      setCanvasToRename(null);
+    }
+  }
 
   return (
     <Stack style={{ flex: 1 }} p="sm">
@@ -114,6 +167,7 @@ export function CanvasList() {
             key={canvas.id}
             canvas={canvas}
             onItemClick={handleCanvasItemClick}
+            onRename={handleCanvasRename}
           />
         ))}
       </Flex>
@@ -122,6 +176,13 @@ export function CanvasList() {
           folders={folders}
           onClose={handleNewCanvasNameModalClose}
           onSubmit={handleNewCanvasSubmit}
+        />
+      ) : null}
+      {canvasToRename ? (
+        <NameModal
+          defaultValue={canvasToRename.name}
+          onClose={handleRenameModalClose}
+          onSubmit={handleCanvasRenameSubmit}
         />
       ) : null}
     </Stack>
@@ -154,12 +215,14 @@ function NewCanvasModal({ onClose, folders, onSubmit }: NewCanvasModalProps) {
   const handleFolderChange = (value: string | null) => {
     setSelectedFolder(value);
   };
+  const activeFolderId = getActiveFolderId();
 
   return (
     <Modal opened={true} onClose={onClose} title="Create new canvas" centered>
       <Stack gap={12}>
         <Input placeholder="Enter name" ref={nameInputRef} data-autofocus />
         <Select
+          defaultValue={activeFolderId.toString()}
           onChange={handleFolderChange}
           label="Select folder"
           placeholder="Select folder"
@@ -168,7 +231,6 @@ function NewCanvasModal({ onClose, folders, onSubmit }: NewCanvasModalProps) {
             value: `${folder.id}`,
           }))}
         />
-
         <Group style={{ flexDirection: "row-reverse" }} gap={8}>
           <Button onClick={handleCreateClick}>Create</Button>
           <Button variant="outline" onClick={onClose}>
@@ -181,10 +243,11 @@ function NewCanvasModal({ onClose, folders, onSubmit }: NewCanvasModalProps) {
 }
 
 type CanvasItemProps = {
-  canvas: ExcalidrawOrganizerDB["canvas"]["value"];
+  canvas: Canvas;
   onItemClick: (id: string) => void;
+  onRename: (canvas: Canvas) => void;
 };
-function CanvasItem({ canvas, onItemClick }: CanvasItemProps) {
+function CanvasItem({ canvas, onItemClick, onRename }: CanvasItemProps) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: canvas.id,
   });
@@ -193,32 +256,70 @@ function CanvasItem({ canvas, onItemClick }: CanvasItemProps) {
         transform: CSS.Translate.toString(transform),
       }
     : undefined;
+  function handleRenameClick() {
+    onRename(canvas);
+  }
 
   return (
-    <UnstyledButton
-      key={canvas.id}
+    <Stack
       style={{
         border: "1px solid #dfdada",
         borderRadius: 10,
         padding: 10,
         ...style,
       }}
-      onClick={onItemClick.bind(null, canvas.id)}
       ref={setNodeRef}
       {...listeners}
       {...attributes}
     >
-      <ExcalidrawPreview
-        data={{
-          elements: canvas.elements,
-          appState: { viewBackgroundColor: "#fff" },
-          files: {},
-        }}
-        width={window.innerWidth / 5}
-        height={window.innerWidth / 5 - 40}
-        withBackground={true}
-      />
-      <Text size="xs">{canvas.name}</Text>
-    </UnstyledButton>
+      <UnstyledButton
+        key={canvas.id}
+        onClick={onItemClick.bind(null, canvas.id)}
+      >
+        <ExcalidrawPreview
+          data={{
+            elements: canvas.elements,
+            appState: { viewBackgroundColor: "#fff" },
+            files: {},
+          }}
+          width={Math.round(window.innerWidth / 5)}
+          height={Math.round(window.innerWidth / 5 - 40)}
+          withBackground={true}
+        />
+      </UnstyledButton>
+      <Divider />
+      <Group justify="space-between">
+        <Text size="xs">{canvas.name}</Text>
+        <Menu shadow="md">
+          <Menu.Target>
+            <ActionIcon
+              variant="transparent"
+              color="black"
+              size="xs"
+              aria-label="Show canvas actions"
+            >
+              <IconDotsVertical />
+            </ActionIcon>
+          </Menu.Target>
+          <Menu.Dropdown>
+            <Menu.Item
+              leftSection={
+                <IconPencil style={{ width: rem(14), height: rem(14) }} />
+              }
+              onClick={handleRenameClick}
+            >
+              Rename
+            </Menu.Item>
+            <Menu.Item
+              leftSection={
+                <IconTrash style={{ width: rem(14), height: rem(14) }} />
+              }
+            >
+              Delete
+            </Menu.Item>
+          </Menu.Dropdown>
+        </Menu>
+      </Group>
+    </Stack>
   );
 }

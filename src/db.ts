@@ -3,7 +3,11 @@ import { ExcalidrawElement } from "@excalidraw/excalidraw/types/element/types";
 import { AppState } from "@excalidraw/excalidraw/types/types";
 import {
   getActiveCanvas,
+  getActiveCanvasId,
   getCurrentCanvasDetails,
+  setActiveCanvasId,
+  setActiveFolderId,
+  setCanvasNameInAppState,
   setLastSavedSceneVersion,
 } from "./helpers";
 
@@ -44,7 +48,10 @@ export interface ExcalidrawOrganizerDB extends DBSchema {
 
 export const DEFAULT_FOLDER_NAME = "Default";
 export const DEFAULT_FOLDER_ID = 1;
-export const idNameSeparator = "::::";
+// Setup indexed db
+// Create a default folder if it doesn't exist
+// Add the current excalidraw canvas to the db
+// Set active folder and canvas ids in local storage
 export async function initializeDB() {
   const db = await openDB<ExcalidrawOrganizerDB>("excalidraw-organizer", 1, {
     upgrade(db) {
@@ -93,6 +100,8 @@ export async function initializeDB() {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });
+      setActiveFolderId(DEFAULT_FOLDER_ID);
+      setActiveCanvasId(canvasId);
     } catch (e) {
       console.error("Error adding default folder", e);
     } finally {
@@ -120,7 +129,6 @@ export async function getCanvasFromDb(
   const tx = db.transaction("canvas", "readonly");
   const canvasStore = tx.objectStore("canvas");
   const canvas = await canvasStore.get(canvasId);
-  console.log({ canvas });
   await tx.done;
 
   return canvas;
@@ -134,10 +142,55 @@ export async function getFolderByName(
   const folderStore = tx.objectStore("folder");
   const index = folderStore.index("folder-name");
   const folder = await index.get(name);
-  console.log({ name, folder });
   await tx.done;
 
   return folder;
+}
+// Update the canvas name in the db. Need to update name inside appState as well.
+// Inside canvas in db as well as local storage if the canvas is currently active
+export async function updateCanvasName(
+  db: IDBPDatabase<ExcalidrawOrganizerDB>,
+  id: string,
+  newName: string,
+) {
+  const canvas = await getCanvasFromDb(db, id);
+  if (canvas) {
+    const appState = canvas.appState;
+    const newAppState = {
+      ...appState,
+      name: newName,
+    };
+    const newCanvas = {
+      ...canvas,
+      // TODO: Now that we store the name properly inside appState, we can remove the name property
+      appState: newAppState,
+      name: newName,
+      updated_at: new Date().toISOString(),
+    };
+    const activeCanvasId = getActiveCanvasId();
+    if (activeCanvasId === id) {
+      setCanvasNameInAppState(newName);
+    }
+    await db.put("canvas", newCanvas);
+  }
+}
+export async function updateCanvasAttribute(
+  db: IDBPDatabase<ExcalidrawOrganizerDB>,
+  id: string,
+  attrName: string,
+  attrValue: string,
+) {
+  const tx = db.transaction("canvas", "readwrite");
+  const canvasStore = tx.objectStore("canvas");
+  const canvas = await canvasStore.get(id);
+  if (canvas) {
+    await db.put("canvas", {
+      ...canvas,
+      [attrName]: attrValue,
+      updated_at: new Date().toISOString(),
+    });
+  }
+  await tx.done;
 }
 export async function saveExistingCanvasToDb(
   db: IDBPDatabase<ExcalidrawOrganizerDB>,
@@ -152,11 +205,13 @@ export async function saveExistingCanvasToDb(
     if (canvas) {
       await db.put("canvas", {
         ...canvas,
-        ...currentCanvas,
+        elements: currentCanvas.elements,
+        appState: currentCanvas.appState,
         updated_at: new Date().toISOString(),
       });
       setLastSavedSceneVersion();
     }
+    await tx.done;
   }
 }
 export async function createNewFolder(
@@ -179,7 +234,7 @@ export async function createNewCanvas(
 ) {
   const canvasId = Math.random().toString(36).substring(7);
   const appState = {
-    name: `${canvasId}${idNameSeparator}${name}`,
+    name,
   };
   const canvas = {
     id: canvasId,
@@ -191,6 +246,27 @@ export async function createNewCanvas(
   };
   await db.add("canvas", canvas);
   return canvas;
+}
+export async function updateFolderCanvasDetails(
+  db: IDBPDatabase<ExcalidrawOrganizerDB>,
+  folderId: number,
+  canvasId: string,
+  canvasName: string,
+) {
+  const folder = await db.get("folder", IDBKeyRange.only(folderId));
+  if (folder) {
+    const canvases = folder.canvases;
+    const newCanvases = canvases.map((canvas) => {
+      if (canvas.canvasId === canvasId) {
+        return { canvasId, canvasName };
+      }
+      return canvas;
+    });
+    await db.put("folder", {
+      ...folder,
+      canvases: newCanvases,
+    });
+  }
 }
 export async function updateFolderWithCanvas(
   db: IDBPDatabase<ExcalidrawOrganizerDB>,

@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ActionIcon,
@@ -12,12 +13,12 @@ import {
   useMantineTheme,
 } from "@mantine/core";
 import { IconPlus } from "@tabler/icons-react";
+import { useDroppable } from "@dnd-kit/core";
+
 import { useDatabase } from "./DbProvider";
 import { getFolders, createNewFolder } from "./db";
-import { useRef, useState } from "react";
 import classes from "./folder-list.module.css";
-import { getSelectedFolderId } from "./helpers";
-import { useDroppable } from "@dnd-kit/core";
+import { getSelectedFolderId, setActiveFolderId } from "./helpers";
 
 export default function FolderList({
   forceUpdate,
@@ -49,7 +50,7 @@ export default function FolderList({
     setShowNewFolderNameModal(false);
   };
   function handleSelectFolderClick(id: number) {
-    localStorage.setItem("excalidraw-organizer-selected-folder-id", String(id));
+    setActiveFolderId(id);
     setSelectedFolderId(id);
     queryClient.invalidateQueries({ queryKey: ["folders"] });
     // Force updating from the top because otherwise the canvases for
@@ -108,7 +109,11 @@ function NewFolderModal({ onClose, onSubmit }: NewFolderModalProps) {
   return (
     <Modal opened={true} onClose={onClose} title="New Folder" centered>
       <Stack gap={12}>
-        <Input placeholder="Enter folder name" ref={nameInputRef} />
+        <Input
+          placeholder="Enter folder name"
+          ref={nameInputRef}
+          data-autofocus
+        />
         <Group style={{ flexDirection: "row-reverse" }} gap={8}>
           <Button onClick={handleCreateClick}>Create</Button>
           <Button variant="outline" onClick={onClose}>

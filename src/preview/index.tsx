@@ -135,7 +135,6 @@ export function ExcalidrawPreview({
       style={{
         width,
         height,
-        background: "#444444",
       }}
       ref={previewRef}
     />

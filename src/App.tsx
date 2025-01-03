@@ -1,11 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { AppState } from "@excalidraw/excalidraw/types/types";
 import { Button, Modal, Flex, Divider } from "@mantine/core";
-import {
-  idNameSeparator,
-  moveCanvasToFolder,
-  saveExistingCanvasToDb,
-} from "./db";
+import { moveCanvasToFolder, saveExistingCanvasToDb } from "./db";
 
 import "./App.css";
 import { useDatabase } from "./DbProvider";
@@ -27,13 +22,7 @@ import {
   getSelectedFolderId,
 } from "./helpers";
 
-const canvasListKey = "excalidraw-organizer-canvas-list";
 const panelVisibilityKey = "excalidraw-organizer-show-panel";
-
-// function isCanvasActive(canvas: { id: string; name: string }) {
-//   const appState = JSON.parse(localStorage.getItem("excalidraw-state") || "{}");
-//   return appState.name.includes(canvas.id + idNameSeparator);
-// }
 
 function useForceUpdate() {
   const [, setToggle] = useState(false);
@@ -41,9 +30,6 @@ function useForceUpdate() {
 }
 function App() {
   const forceUpdate = useForceUpdate();
-  const [canvases, setCanvases] = useState<Array<{ id: string; name: string }>>(
-    [],
-  );
   const [showPanel, setShowPanel] = useState(false);
   const db = useDatabase();
 
@@ -67,42 +53,6 @@ function App() {
       },
     );
   }, []);
-
-  useEffect(() => {
-    try {
-      const canvases = JSON.parse(localStorage.getItem(canvasListKey) || "[]");
-      if (!canvases) {
-        localStorage.setItem(canvasListKey, JSON.stringify([]));
-      }
-      setCanvases(canvases || []);
-    } catch (e) {
-      console.error("Error parsing canvases", e);
-    }
-
-    setTimeout(() => {
-      try {
-        const appState = JSON.parse(
-          localStorage.getItem("excalidraw-state") || "",
-        ) as AppState;
-        const canvasName = appState.name;
-
-        if (!canvasName.includes(idNameSeparator)) {
-          const canvasId = Math.random().toString(36).substring(7);
-          appState.name = `${canvasId}${idNameSeparator}${canvasName}`;
-          setCanvases((canvases) => [
-            ...canvases,
-            { id: canvasId, name: canvasName },
-          ]);
-          localStorage.setItem("excalidraw-state", JSON.stringify(appState));
-        }
-      } catch (e) {
-        console.error("Error getting app state", e);
-      }
-    }, 2000);
-  }, []);
-  useEffect(() => {
-    localStorage.setItem(canvasListKey, JSON.stringify(canvases));
-  }, [canvases]);
 
   const handleDrawerClose = () => {
     setShowPanel(false);
