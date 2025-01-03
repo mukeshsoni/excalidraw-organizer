@@ -27,6 +27,7 @@ import { useDatabase } from "./DbProvider";
 import {
   createNewCanvas,
   DEFAULT_FOLDER_ID,
+  deleteCanvas,
   ExcalidrawOrganizerDB,
   getCanvasFromDb,
   getFolders,
@@ -36,7 +37,8 @@ import {
   updateFolderWithCanvas,
 } from "./db";
 import {
-  getActiveFolderId,
+  getActiveCanvasId,
+  getSelectedFolderId,
   getSelectedFolderId,
   LOCAL_STORAGE_KEY_PREFIX,
   setActiveCanvasId,
@@ -48,6 +50,7 @@ type Canvas = ExcalidrawOrganizerDB["canvas"]["value"];
 export function CanvasList() {
   const [showNewCanvasNameModal, setShowNewCanvasNameModal] = useState(false);
   const [canvasToRename, setCanvasToRename] = useState<Canvas | null>(null);
+  const [canvasIdToDelete, setCanvasIdToDelete] = useState<string | null>(null);
   const [canvases, setCanvases] = useState<
     ExcalidrawOrganizerDB["canvas"]["value"][]
   >([]);
@@ -131,6 +134,27 @@ export function CanvasList() {
   function handleCanvasRename(canvas: Canvas) {
     setCanvasToRename(canvas);
   }
+  function handleCanvasDeleteClick(id: string) {
+    const activeCanvasId = getActiveCanvasId();
+    console.log({ activeCanvasId, id });
+    if (activeCanvasId === id) {
+      alert(
+        "Sorry, you can't delete the active canvas. I am trying to figure out how to make that happen.",
+      );
+    } else {
+      setCanvasIdToDelete(id);
+    }
+  }
+  function handleDeleteConfirmationDialogClose() {
+    setCanvasIdToDelete(null);
+  }
+  async function handleDeleteConfirmation() {
+    if (db && canvasIdToDelete) {
+      await deleteCanvas(db, canvasIdToDelete);
+      queryClient.invalidateQueries({ queryKey: ["folders"] });
+    }
+    setCanvasIdToDelete(null);
+  }
   function handleRenameModalClose() {
     setCanvasToRename(null);
   }
@@ -168,9 +192,28 @@ export function CanvasList() {
             canvas={canvas}
             onItemClick={handleCanvasItemClick}
             onRename={handleCanvasRename}
+            onDelete={handleCanvasDeleteClick}
           />
         ))}
       </Flex>
+      <Modal
+        opened={!!canvasIdToDelete}
+        title="Delete Canvas"
+        onClose={handleDeleteConfirmationDialogClose}
+        centered
+      >
+        Are you sure you want to delete the canvas? This action cannot be
+        undone.
+        <Group style={{ flexDirection: "row-reverse" }} gap={8}>
+          <Button onClick={handleDeleteConfirmation}>Delete</Button>
+          <Button
+            variant="outline"
+            onClick={handleDeleteConfirmationDialogClose}
+          >
+            Cancel
+          </Button>
+        </Group>
+      </Modal>
       {showNewCanvasNameModal && folders ? (
         <NewCanvasModal
           folders={folders}
@@ -195,7 +238,10 @@ type NewCanvasModalProps = {
   onSubmit: (name: string, folderId: number) => void;
 };
 function NewCanvasModal({ onClose, folders, onSubmit }: NewCanvasModalProps) {
-  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+  const activeFolderId = getSelectedFolderId();
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(
+    String(activeFolderId),
+  );
   const nameInputRef = useRef<HTMLInputElement>(null);
   function getDefaultFolderId() {
     return (
@@ -215,7 +261,6 @@ function NewCanvasModal({ onClose, folders, onSubmit }: NewCanvasModalProps) {
   const handleFolderChange = (value: string | null) => {
     setSelectedFolder(value);
   };
-  const activeFolderId = getActiveFolderId();
 
   return (
     <Modal opened={true} onClose={onClose} title="Create new canvas" centered>
@@ -246,8 +291,14 @@ type CanvasItemProps = {
   canvas: Canvas;
   onItemClick: (id: string) => void;
   onRename: (canvas: Canvas) => void;
+  onDelete: (id: string) => void;
 };
-function CanvasItem({ canvas, onItemClick, onRename }: CanvasItemProps) {
+function CanvasItem({
+  canvas,
+  onItemClick,
+  onRename,
+  onDelete,
+}: CanvasItemProps) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: canvas.id,
   });
@@ -258,6 +309,9 @@ function CanvasItem({ canvas, onItemClick, onRename }: CanvasItemProps) {
     : undefined;
   function handleRenameClick() {
     onRename(canvas);
+  }
+  function handleDeleteClick() {
+    onDelete(canvas.id);
   }
 
   return (
@@ -314,6 +368,7 @@ function CanvasItem({ canvas, onItemClick, onRename }: CanvasItemProps) {
               leftSection={
                 <IconTrash style={{ width: rem(14), height: rem(14) }} />
               }
+              onClick={handleDeleteClick}
             >
               Delete
             </Menu.Item>

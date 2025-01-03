@@ -4,11 +4,6 @@ import { DEFAULT_FOLDER_ID } from "./db";
 import { getSceneVersion } from "@excalidraw/excalidraw";
 
 export const LOCAL_STORAGE_KEY_PREFIX = "excalidraw-organizer";
-export function getActiveFolderId() {
-  return Number(
-    localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}-active-folder-id`) || "0",
-  );
-}
 export function getActiveCanvasId() {
   return localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}-active-canvas-id`);
 }
@@ -76,7 +71,7 @@ export function getCurrentCanvasDetails(): {
 export function getSelectedFolderId() {
   return (
     Number(
-      localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}-active-folder-id`),
+      localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}-selected-folder-id`),
     ) || DEFAULT_FOLDER_ID
   );
 }
@@ -107,9 +102,9 @@ export function setActiveCanvasId(canvasId: string) {
     canvasId,
   );
 }
-export function setActiveFolderId(folderId: number) {
+export function setSelectedFolderIdInStorage(folderId: number) {
   localStorage.setItem(
-    `${LOCAL_STORAGE_KEY_PREFIX}-active-folder-id`,
+    `${LOCAL_STORAGE_KEY_PREFIX}-selected-folder-id`,
     String(folderId),
   );
 }

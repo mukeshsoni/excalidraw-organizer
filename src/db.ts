@@ -4,9 +4,10 @@ import { AppState } from "@excalidraw/excalidraw/types/types";
 import {
   getActiveCanvas,
   getActiveCanvasId,
+  getSelectedFolderId,
   getCurrentCanvasDetails,
   setActiveCanvasId,
-  setActiveFolderId,
+  setSelectedFolderIdInStorage,
   setCanvasNameInAppState,
   setLastSavedSceneVersion,
 } from "./helpers";
@@ -100,7 +101,7 @@ export async function initializeDB() {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });
-      setActiveFolderId(DEFAULT_FOLDER_ID);
+      setSelectedFolderIdInStorage(DEFAULT_FOLDER_ID);
       setActiveCanvasId(canvasId);
     } catch (e) {
       console.error("Error adding default folder", e);
@@ -318,4 +319,25 @@ export async function moveCanvasToFolder(
     }
     await tx.done;
   }
+}
+
+export async function deleteCanvas(
+  db: IDBPDatabase<ExcalidrawOrganizerDB>,
+  id: string,
+) {
+  const tx = db.transaction(["folder", "canvas"], "readwrite");
+  const folderStore = tx.objectStore("folder");
+  const canvasStore = tx.objectStore("canvas");
+  await canvasStore.delete(id);
+  const folderId = getSelectedFolderId();
+  // Update canvas list in folder object
+  const folder = await folderStore.get(IDBKeyRange.only(folderId));
+  if (folder) {
+    const canvases = folder.canvases.filter((canvas) => canvas.canvasId !== id);
+    folderStore.put({
+      ...folder,
+      canvases,
+    });
+  }
+  await tx.done;
 }

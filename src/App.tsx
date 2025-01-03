@@ -153,7 +153,7 @@ function App() {
         size={"100%"}
         styles={{
           content: {
-            minHeight: "80vh",
+            height: "80vh",
             display: "flex",
             flexDirection: "column",
           },

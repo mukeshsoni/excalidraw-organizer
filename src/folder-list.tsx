@@ -18,7 +18,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { useDatabase } from "./DbProvider";
 import { getFolders, createNewFolder } from "./db";
 import classes from "./folder-list.module.css";
-import { getSelectedFolderId, setActiveFolderId } from "./helpers";
+import { getSelectedFolderId, setSelectedFolderIdInStorage } from "./helpers";
 
 export default function FolderList({
   forceUpdate,
@@ -50,7 +50,7 @@ export default function FolderList({
     setShowNewFolderNameModal(false);
   };
   function handleSelectFolderClick(id: number) {
-    setActiveFolderId(id);
+    setSelectedFolderIdInStorage(id);
     setSelectedFolderId(id);
     queryClient.invalidateQueries({ queryKey: ["folders"] });
     // Force updating from the top because otherwise the canvases for
@@ -72,6 +72,7 @@ export default function FolderList({
           onClick={handleNewFolderClick}
           aria-label="New Folder"
           variant="light"
+          title="New Folder"
         >
           <IconPlus fill="none" />
         </ActionIcon>
