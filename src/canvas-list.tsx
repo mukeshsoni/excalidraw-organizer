@@ -22,6 +22,10 @@ import {
   IconDotsVertical,
   IconTrash,
   IconPencil,
+  IconSortDescending,
+  IconSortAscending,
+  IconArrowDown,
+  IconCaretDown,
 } from "@tabler/icons-react";
 import { useDatabase } from "./DbProvider";
 import {
@@ -47,12 +51,28 @@ import { NameModal } from "./rename-canvas";
 
 type Canvas = ExcalidrawOrganizerDB["canvas"]["value"];
 export function CanvasList() {
+  const [sortBy, setSortBy] = useState<{
+    key: "updated_at" | "name";
+    order: "asc" | "desc";
+  }>({ key: "updated_at", order: "desc" });
   const [showNewCanvasNameModal, setShowNewCanvasNameModal] = useState(false);
   const [canvasToRename, setCanvasToRename] = useState<Canvas | null>(null);
   const [canvasIdToDelete, setCanvasIdToDelete] = useState<string | null>(null);
-  const [canvases, setCanvases] = useState<
+  const [canvasesFromDb, setCanvasesFromDb] = useState<
     ExcalidrawOrganizerDB["canvas"]["value"][]
   >([]);
+  const canvases = canvasesFromDb.sort((a, b) => {
+    switch (sortBy.key) {
+      case "updated_at":
+        return sortBy.order === "asc"
+          ? new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime()
+          : new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      case "name":
+        return sortBy.order === "asc"
+          ? a.name.localeCompare(b.name)
+          : b.name.localeCompare(a.name);
+    }
+  });
   const db = useDatabase();
   const queryClient = useQueryClient();
   const { data: folders } = useQuery({
@@ -72,7 +92,7 @@ export function CanvasList() {
             canvasesFromDb.push(canvasFromDb);
           }
         }
-        setCanvases(canvasesFromDb);
+        setCanvasesFromDb(canvasesFromDb);
       }
     }
     getCanvases();
@@ -175,14 +195,61 @@ export function CanvasList() {
       setCanvasToRename(null);
     }
   }
+  function onSortByClick(key: "updated_at" | "name", order: "asc" | "desc") {
+    setSortBy({ key, order });
+  }
+  function getSortButtonLabel() {
+    switch (sortBy.key) {
+      case "updated_at":
+        return sortBy.order === "asc"
+          ? "Update time - Asc"
+          : "Update time - Desc";
+      case "name":
+        return sortBy.order === "asc" ? "Name - A-Z" : "Name - Z-A";
+    }
+  }
 
   return (
     <Stack style={{ flex: 1 }} p="sm">
-      <Flex direction="row-reverse">
+      <Group justify="space-between">
+        <Menu>
+          <Menu.Target>
+            <Stack gap={2}>
+              <Text size="xs">Sort by</Text>
+              <Button
+                variant="outline"
+                leftSection={<IconCaretDown fill="blue" />}
+                rightSection={
+                  sortBy.order === "asc" ? (
+                    <IconSortAscending fill="none" />
+                  ) : (
+                    <IconSortDescending fill="none" />
+                  )
+                }
+              >
+                {getSortButtonLabel()}
+              </Button>
+            </Stack>
+          </Menu.Target>
+          <Menu.Dropdown>
+            <Menu.Item onClick={onSortByClick.bind(null, "updated_at", "asc")}>
+              Update time - Asc
+            </Menu.Item>
+            <Menu.Item onClick={onSortByClick.bind(null, "updated_at", "desc")}>
+              Update time - Desc
+            </Menu.Item>
+            <Menu.Item onClick={onSortByClick.bind(null, "name", "asc")}>
+              Name - A-Z
+            </Menu.Item>
+            <Menu.Item onClick={onSortByClick.bind(null, "name", "desc")}>
+              Name - Z-A
+            </Menu.Item>
+          </Menu.Dropdown>
+        </Menu>
         <Button onClick={handleNewCanvasClick} rightSection={<IconPlus />}>
           New Canvas
         </Button>
-      </Flex>
+      </Group>
       <Flex gap="sm" wrap="wrap">
         {canvases.map((canvas) => (
           <CanvasItem
@@ -345,8 +412,13 @@ function CanvasItem({
         />
       </UnstyledButton>
       <Divider />
-      <Group justify="space-between">
-        <Text size="xs">{canvas.name}</Text>
+      <Group justify="space-between" align="center">
+        <Stack gap={2}>
+          <Text size="xs">{canvas.name}</Text>
+          <Text size="xs">
+            Updated - {new Date(canvas.updated_at).toLocaleString()}
+          </Text>
+        </Stack>
         <Menu shadow="md">
           <Menu.Target>
             <ActionIcon

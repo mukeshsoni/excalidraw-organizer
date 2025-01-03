@@ -142,15 +142,21 @@ export default function FolderList({
           </ActionIcon>
         </Flex>
         <Stack gap={0}>
-          {folders?.map((folder) => (
-            <DroppableFolderItem
-              folder={folder}
-              selectedFolderId={selectedFolderId}
-              onItemClick={handleSelectFolderClick}
-              onRename={handleFolderRenameClick}
-              onDelete={handleFolderDeleteClick}
-            />
-          ))}
+          {folders
+            ?.sort(
+              (a, b) =>
+                new Date(a.created_at).getTime() -
+                new Date(b.created_at).getTime(),
+            )
+            .map((folder) => (
+              <DroppableFolderItem
+                folder={folder}
+                selectedFolderId={selectedFolderId}
+                onItemClick={handleSelectFolderClick}
+                onRename={handleFolderRenameClick}
+                onDelete={handleFolderDeleteClick}
+              />
+            ))}
         </Stack>
         {showNewFolderNameModal && folders ? (
           <NewFolderModal

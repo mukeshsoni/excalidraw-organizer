@@ -142,7 +142,7 @@ function App() {
             padding: 2,
           }}
         >
-          Open panel
+          Open organizer
         </Button>
       ) : null}
       <Modal
