@@ -281,6 +281,7 @@ function DroppableFolderItem({
         onClick={onItemClick.bind(null, folder.id)}
         style={{
           flex: 1,
+          fontSize: rem(14),
         }}
       >
         {folder.name}
