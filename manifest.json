@@ -18,12 +18,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": [
-        "/dist/assets/index.js",
-        "/dist/assets/index.css",
-        "/inject.js",
-        "/scripts/inject.js"
-      ],
+      "resources": ["/dist/assets/index.js", "/dist/assets/index.css"],
       "matches": ["https://excalidraw.com/*"]
     }
   ]

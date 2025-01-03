@@ -14,15 +14,3 @@ if (!document.getElementById(root)) {
     await import(src);
   })();
 }
-
-// chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
-//   if (message.message === "toggle-panel") {
-//     let container = document.getElementById(
-//       "excalidraw-organizer-chrome-extension-root",
-//     );
-//     if (container) {
-//       container.style.display =
-//         container.style.display === "none" ? "block" : "none";
-//     }
-//   }
-// });
