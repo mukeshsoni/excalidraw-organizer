@@ -15,6 +15,7 @@ import {
   Stack,
   Text,
   UnstyledButton,
+  useMantineTheme,
 } from "@mantine/core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -208,6 +209,7 @@ export function CanvasList() {
         return sortBy.order === "asc" ? "Name - A-Z" : "Name - Z-A";
     }
   }
+  const theme = useMantineTheme();
 
   return (
     <Stack style={{ flex: 1 }} p="sm">
@@ -217,8 +219,8 @@ export function CanvasList() {
             <Stack gap={2}>
               <Text size="xs">Sort by</Text>
               <Button
-                variant="outline"
-                leftSection={<IconCaretDown fill="blue" />}
+                variant="light"
+                leftSection={<IconCaretDown fill={theme.colors.blue[6]} />}
                 rightSection={
                   sortBy.order === "asc" ? (
                     <IconSortAscending fill="none" />
