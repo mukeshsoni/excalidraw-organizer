@@ -135,10 +135,7 @@ function App() {
           onClick={handlePanelOpenClick}
           variant="transparent"
           style={{
-            transform: "rotate(-90deg)",
-            top: window.innerHeight - 200,
-            left: -30,
-            height: 19,
+            left: window.innerWidth / 2 - 50,
             padding: 2,
           }}
         >

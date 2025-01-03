@@ -2,7 +2,8 @@ const root = `excalidraw-organizer-chrome-extension-root`;
 if (!document.getElementById(root)) {
   const container = document.createElement("div");
   container.id = root;
-  container.style = "position: absolute; top: 0; left: 0; z-index: 9999;";
+  container.style =
+    "position: absolute; bottom: 0; left: 0; right: 0; z-index: 9999;";
   document.body.appendChild(container);
 
   // Load the React app
