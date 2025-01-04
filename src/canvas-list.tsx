@@ -52,6 +52,10 @@ import { NameModal } from "./rename-canvas";
 
 type Canvas = ExcalidrawOrganizerDB["canvas"]["value"];
 export function CanvasList() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [previewWidth, setPreviewWidth] = useState(
+    Math.min(Math.round(window.innerWidth / 5), 250),
+  );
   const [sortBy, setSortBy] = useState<{
     key: "updated_at" | "name";
     order: "asc" | "desc";
@@ -98,6 +102,29 @@ export function CanvasList() {
     }
     getCanvases();
   }, [selectedFolderId, folders, db]);
+  function calculateAndSetPreviewWidth(containerEl: HTMLDivElement) {
+    const maxPreviewWidth = 350;
+    let calculatedPreviewWidth = Math.floor(containerEl.offsetWidth / 3 - 40);
+
+    // If the preview width is too big, let's show 4 previews in a row
+    if (calculatedPreviewWidth > maxPreviewWidth) {
+      calculatedPreviewWidth = Math.floor(containerEl.offsetWidth / 4 - 40);
+    }
+
+    setPreviewWidth(calculatedPreviewWidth);
+  }
+  useEffect(() => {
+    if (containerRef.current) {
+      calculateAndSetPreviewWidth(containerRef.current);
+    }
+  }, []);
+  useEffect(() => {
+    window.addEventListener("resize", () => {
+      if (containerRef.current) {
+        calculateAndSetPreviewWidth(containerRef.current);
+      }
+    });
+  }, []);
 
   function handleNewCanvasClick() {
     setShowNewCanvasNameModal(true);
@@ -212,7 +239,7 @@ export function CanvasList() {
   const theme = useMantineTheme();
 
   return (
-    <Stack style={{ flex: 1 }} p="sm">
+    <Stack style={{ flex: 1 }} p="sm" ref={containerRef}>
       <Group justify="space-between">
         <Menu>
           <Menu.Target>
@@ -257,6 +284,8 @@ export function CanvasList() {
           <CanvasItem
             key={canvas.id}
             canvas={canvas}
+            width={previewWidth}
+            height={Math.round(previewWidth * 0.8)}
             onItemClick={handleCanvasItemClick}
             onRename={handleCanvasRename}
             onDelete={handleCanvasDeleteClick}
@@ -361,12 +390,16 @@ function NewCanvasModal({ onClose, folders, onSubmit }: NewCanvasModalProps) {
 
 type CanvasItemProps = {
   canvas: Canvas;
+  width: number;
+  height: number;
   onItemClick: (id: string) => void;
   onRename: (canvas: Canvas) => void;
   onDelete: (id: string) => void;
 };
 function CanvasItem({
   canvas,
+  width,
+  height,
   onItemClick,
   onRename,
   onDelete,
@@ -408,8 +441,8 @@ function CanvasItem({
             appState: { viewBackgroundColor: "#fff" },
             files: {},
           }}
-          width={Math.round(window.innerWidth / 5)}
-          height={Math.round(window.innerWidth / 5 - 40)}
+          width={width}
+          height={height}
           withBackground={true}
         />
       </UnstyledButton>

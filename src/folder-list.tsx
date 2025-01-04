@@ -129,7 +129,9 @@ export default function FolderList({
 
   return (
     <>
-      <Stack style={{ minWidth: window.innerWidth / 5 }}>
+      <Stack
+        style={{ width: Math.max(200, Math.min(window.innerWidth / 5, 300)) }}
+      >
         <Flex align="center" justify="space-between" px="xs">
           <Text>Folders</Text>
           <ActionIcon
